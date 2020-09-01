@@ -203,7 +203,7 @@ bool CBlockTreeDB::WriteTxIndex(const std::vector<std::pair<uint256, CDiskTxPos>
     CDBBatch batch(*this);
     for (std::vector<std::pair<uint256,CDiskTxPos> >::const_iterator it=vect.begin(); it!=vect.end(); it++)
         batch.Write(std::make_pair(DB_TXINDEX, it->first), it->second);
-    return WriteBatch(batch);
+    return WriteBatch(batch, true);
 }
 
 bool CBlockTreeDB::ReadSpentIndex(CSpentIndexKey &key, CSpentIndexValue &value) {
@@ -265,14 +265,14 @@ bool CBlockTreeDB::WriteAddressIndex(const std::vector<std::pair<CAddressIndexKe
     for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=vect.begin(); it!=vect.end(); it++) {
         batch.Write(make_pair(DB_ADDRESSINDEX, it->first), it->second);
     }
-    return WriteBatch(batch);
+    return WriteBatch(batch, true);
 }
 
 bool CBlockTreeDB::EraseAddressIndex(const std::vector<std::pair<CAddressIndexKey, CAmount > >&vect) {
     CDBBatch batch(*this);
     for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=vect.begin(); it!=vect.end(); it++)
     batch.Erase(make_pair(DB_ADDRESSINDEX, it->first));
-    return WriteBatch(batch);
+    return WriteBatch(batch, true);
 }
 
 bool CBlockTreeDB::ReadAddressIndex(uint160 addressHash, AddressType type,
