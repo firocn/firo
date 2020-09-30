@@ -2093,8 +2093,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         const CTransaction &tx = *(block.vtx[i]);
         uint256 hash = tx.GetHash();
 
-        dbIndexHelper.DisconnectTransactionOutputs(tx, pindex->nHeight, i, view);
-
         // Check that all outputs are available and match the outputs in the block itself
         // exactly.
         for (size_t o = 0; o < tx.vout.size(); o++) {
@@ -2127,6 +2125,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         if(tx.IsSigmaSpend())
             nFees += sigma::GetSigmaSpendInput(tx) - tx.GetValueOut();
 
+        dbIndexHelper.DisconnectTransactionOutputs(tx, pindex->nHeight, i, view);
         dbIndexHelper.DisconnectTransactionInputs(tx, pindex->nHeight, i, view);
     }
 
@@ -2468,9 +2467,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                                  REJECT_INVALID, "bad-txns-zerocoin");
         }
 
-        if (!fJustCheck)
-            dbIndexHelper.ConnectTransaction(tx, pindex->nHeight, i, view);
-
         // GetTransactionSigOpCost counts 3 types of sigops:
         // * legacy (always)
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
@@ -2505,6 +2501,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         vPos.push_back(std::make_pair(tx.GetHash(), pos));
         pos.nTxOffset += ::GetSerializeSize(tx, SER_DISK, CLIENT_VERSION);
 
+        if (!fJustCheck)
+            dbIndexHelper.ConnectTransaction(tx, pindex->nHeight, i, view);
     }
 
     block.zerocoinTxInfo->Complete();
