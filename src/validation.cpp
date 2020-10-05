@@ -2047,7 +2047,7 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
 
 /** Undo the effects of this block (with given index) on the UTXO set represented by coins.
  *  When UNCLEAN or FAILED is returned, view is left in an indeterminate state. */
-static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockIndex* pindex, CCoinsViewCache& view, bool *pfClean = nullptr)
+static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockIndex* pindex, CCoinsViewCache& view)
 {
     assert(pindex->GetBlockHash() == view.GetBestBlock());
 
@@ -2060,8 +2060,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         return DISCONNECT_FAILED;
     }
 
-    if (pfClean)
-        *pfClean = false;
     bool fClean = true;
 
     CBlockUndo blockUndo;
@@ -2132,9 +2130,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
-    //The pfClean flag is specified only when called from CVerifyDB::VerifyDB.
-    //When called from there, no real disconnect happens.
-    if(!pfClean) {
+    if(fClean) {
         if (fAddressIndex) {
             if (!pblocktree->EraseAddressIndex(dbIndexHelper.getAddressIndex())) {
                 AbortNode(state, "Failed to delete address index");
@@ -2161,9 +2157,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     */
 
     evoDb->WriteBestBlock(pindex->pprev->GetBlockHash());
-
-    if (pfClean)
-        *pfClean = fClean;
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
@@ -2413,7 +2406,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     vPos.reserve(block.vtx.size());
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
-    CDbIndexHelper dbIndexHelper(fAddressIndex, fSpentIndex);
 
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
@@ -2500,9 +2492,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
         vPos.push_back(std::make_pair(tx.GetHash(), pos));
         pos.nTxOffset += ::GetSerializeSize(tx, SER_DISK, CLIENT_VERSION);
-
-        if (!fJustCheck)
-            dbIndexHelper.ConnectTransaction(tx, pindex->nHeight, i, view);
     }
 
     block.zerocoinTxInfo->Complete();
@@ -2569,6 +2558,13 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
         pindex->RaiseValidity(BLOCK_VALID_SCRIPTS);
         setDirtyBlockIndex.insert(pindex);
+    }
+
+    CDbIndexHelper dbIndexHelper(fAddressIndex, fSpentIndex);
+
+    for (unsigned int i = 0; i < block.vtx.size(); i++) {
+        const CTransaction &tx = *(block.vtx[i]);
+        dbIndexHelper.ConnectTransaction(tx, pindex->nHeight, i, view);
     }
 
     if (fTxIndex)
