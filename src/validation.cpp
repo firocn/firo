@@ -2406,6 +2406,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     vPos.reserve(block.vtx.size());
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    CDbIndexHelper dbIndexHelper(fAddressIndex, fSpentIndex);
 
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
@@ -2485,6 +2486,11 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
         }
+
+        if (!fJustCheck) {
+            dbIndexHelper.ConnectTransaction(tx, pindex->nHeight, i, view);
+        }
+
         // Historically there were duplicate transactions in the block, they were allowed until block 66550
         // Don't update coins for such a transaction
         if (!hasDuplicateInTheSameBlock)
@@ -2558,13 +2564,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
         pindex->RaiseValidity(BLOCK_VALID_SCRIPTS);
         setDirtyBlockIndex.insert(pindex);
-    }
-
-    CDbIndexHelper dbIndexHelper(fAddressIndex, fSpentIndex);
-
-    for (unsigned int i = 0; i < block.vtx.size(); i++) {
-        const CTransaction &tx = *(block.vtx[i]);
-        dbIndexHelper.ConnectTransaction(tx, pindex->nHeight, i, view);
     }
 
     if (fTxIndex)
