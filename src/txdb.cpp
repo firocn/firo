@@ -504,13 +504,14 @@ void handleInput(CTxIn const & input, size_t inputNo, uint256 const & txHash, in
     vector<vector<unsigned char> > addresses;
 
     if(!Solver(prevout.scriptPubKey, type, addresses)) {
-        LogPrint("CDbIndexHelper", "Encountered an unsoluble script in block:%i, txHash: %s, inputNo: %i\n", height, txHash.ToString().c_str(), inputNo);
+        error("CDbIndexHelper: Encountered an unsolvable script in block:%i, txHash: %s, inputNo: %i\n", height, txHash.ToString().c_str(), inputNo);
         return;
     }
 
     std::pair<AddressType, uint160> addrType = classifyAddress(type, addresses);
 
     if(addrType.first == AddressType::unknown) {
+        error("CDbIndexHelper: Encountered an unknown address type in block:%i, txHash: %s, inputNo: %i\n", height, txHash.ToString().c_str(), inputNo);
         return;
     }
 
@@ -569,7 +570,7 @@ void handleOutput(const CTxOut &out, size_t outNo, uint256 const & txHash, int h
     vector<vector<unsigned char> > addresses;
 
     if(!Solver(out.scriptPubKey, type, addresses)) {
-        LogPrint("CDbIndexHelper", "Encountered an unsoluble script in block:%i, txHash: %s, outNo: %i\n", height, txHash.ToString().c_str(), outNo);
+        error("CDbIndexHelper: Encountered an unsoluble script in block:%i, txHash: %s, outNo: %i\n", height, txHash.ToString().c_str(), outNo);
         return;
     }
 

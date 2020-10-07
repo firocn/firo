@@ -22,7 +22,6 @@
 #include <chrono>
 
 #include <boost/foreach.hpp>
-#include <boost/scope_exit.hpp>
 
 #include <ios>
 

@@ -82,6 +82,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/math/distributions/poisson.hpp>
 #include <boost/thread.hpp>
+#include <boost/scope_exit.hpp>
 
 #if defined(NDEBUG)
 # error "Zcoin cannot be compiled without assertions."
@@ -119,6 +120,10 @@ size_t nCoinCacheUsage = 5000 * 300;
 uint64_t nPruneTarget = 0;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
+
+namespace {
+bool fVerifyingDB = false;
+}
 
 uint256 hashAssumeValid;
 
@@ -2130,23 +2135,21 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
-    if(fClean) {
-        if (fAddressIndex) {
-            if (!pblocktree->EraseAddressIndex(dbIndexHelper.getAddressIndex())) {
-                AbortNode(state, "Failed to delete address index");
-                error("Failed to delete address index");
-                return DISCONNECT_FAILED;
-            }
-            if (!pblocktree->UpdateAddressUnspentIndex(dbIndexHelper.getAddressUnspentIndex())) {
-                AbortNode(state, "Failed to write address unspent index");
-                error("Failed to write address unspent index");
-                return DISCONNECT_FAILED;
-            }
-            if (!pblocktree->AddTotalSupply(-(block.vtx[0]->GetValueOut() - nFees))) {
-                AbortNode(state, "Failed to write total supply");
-                error("Failed to write total supply");
-                return DISCONNECT_FAILED;
-            }
+    if (!fVerifyingDB && fAddressIndex) {
+        if (!pblocktree->EraseAddressIndex(dbIndexHelper.getAddressIndex())) {
+            AbortNode(state, "Failed to delete address index");
+            error("Failed to delete address index");
+            return DISCONNECT_FAILED;
+        }
+        if (!pblocktree->UpdateAddressUnspentIndex(dbIndexHelper.getAddressUnspentIndex())) {
+            AbortNode(state, "Failed to write address unspent index");
+            error("Failed to write address unspent index");
+            return DISCONNECT_FAILED;
+        }
+        if (!pblocktree->AddTotalSupply(-(block.vtx[0]->GetValueOut() - nFees))) {
+            AbortNode(state, "Failed to write total supply");
+            error("Failed to write total supply");
+            return DISCONNECT_FAILED;
         }
     }
 
@@ -4724,7 +4727,10 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         }
         // check level 3: check for inconsistencies during memory-only disconnect of tip blocks
         if (nCheckLevel >= 3 && pindex == pindexState && (coins.DynamicMemoryUsage() + pcoinsTip->DynamicMemoryUsage()) <= nCoinCacheUsage) {
+            fVerifyingDB = true; BOOST_SCOPE_EXIT(void) { fVerifyingDB = false; } BOOST_SCOPE_EXIT_END;
+
             DisconnectResult res = DisconnectBlock(block, state, pindex, coins);
+
             if (res == DISCONNECT_FAILED) {
                 return error("VerifyDB(): *** irrecoverable inconsistency in block data at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
             }
