@@ -226,7 +226,7 @@ private:
 
 public:
     MemPoolConflictRemovalTracker(CTxMemPool &_pool) : pool(_pool) {
-        pool.NotifyEntryRemoved.connect(boost::bind(&MemPoolConflictRemovalTracker::NotifyEntryRemoved, this, _1, _2));
+        pool.NotifyEntryRemoved.connect(boost::bind(&MemPoolConflictRemovalTracker::NotifyEntryRemoved, this, boost::placeholders::_1, boost::placeholders::_2));
     }
 
     void NotifyEntryRemoved(CTransactionRef txRemoved, MemPoolRemovalReason reason) {
@@ -236,7 +236,7 @@ public:
     }
 
     ~MemPoolConflictRemovalTracker() {
-        pool.NotifyEntryRemoved.disconnect(boost::bind(&MemPoolConflictRemovalTracker::NotifyEntryRemoved, this, _1, _2));
+        pool.NotifyEntryRemoved.disconnect(boost::bind(&MemPoolConflictRemovalTracker::NotifyEntryRemoved, this, boost::placeholders::_1, boost::placeholders::_2));
         for (const auto& tx : conflictedTxs) {
             GetMainSignals().SyncTransaction(*tx, NULL, CMainSignals::SYNC_TRANSACTION_NOT_IN_BLOCK);
         }
@@ -618,7 +618,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &state, bool fChe
             {
                 if (!vInOutPoints.insert(txin.prevout).second)
                     return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
-            }            
+            }
         }
     }
 
@@ -637,7 +637,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &state, bool fChe
         for (const auto& txin : tx.vin)
             if (txin.prevout.IsNull() && !(txin.scriptSig.IsZerocoinSpend() || txin.IsZerocoinRemint()))
                 return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
-                
+
         if (tx.IsZerocoinV3SigmaTransaction()) {
             if (!CheckSigmaTransaction(tx, state, hashTx, isVerifyDB, nHeight, isCheckWallet, fStatefulZerocoinCheck, sigmaTxInfo))
                 return false;
@@ -727,7 +727,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
 {
     bool fTestNet = Params().GetConsensus().IsTestnet();
     LogPrintf("AcceptToMemoryPoolWorker(), tx.IsZerocoinSpend()=%s, fTestNet=%s\n", ptx->IsZerocoinSpend() || ptx->IsSigmaSpend(), fTestNet);
-    
+
     const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
@@ -1314,7 +1314,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
                 if (!pool.exists(hash))
                     return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool full");
             }
-        } 
+        }
         else {
             LockPoints lp;
             double fSpendsCoinbase = false;
@@ -2613,7 +2613,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
  */
 void static RemoveConflictingPrivacyTransactionsFromMempool(const CBlock &block) {
     LOCK(mempool.cs);
-    
+
     // Erase conflicting zerocoin txs from the mempool
     CZerocoinState *zcState = CZerocoinState::GetZerocoinState();
     sigma::CSigmaState *sigmaState = sigma::CSigmaState::GetState();
@@ -2715,7 +2715,7 @@ bool static FlushStateToDisk(CValidationState &state, FlushStateMode mode, int n
     }
     int64_t nMempoolSizeMax = GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
     int64_t cacheSize = pcoinsTip->DynamicMemoryUsage() * DB_PEAK_USAGE_FACTOR;
-    cacheSize += evoDb->GetMemoryUsage() * DB_PEAK_USAGE_FACTOR;
+    cacheSize += evoDb->GetMemoryUsage() * EVO_DB_USAGE_FACTOR * DB_PEAK_USAGE_FACTOR;
     int64_t nTotalSpace = nCoinCacheUsage + std::max<int64_t>(nMempoolSizeMax - nMempoolUsage, 0);
     // The cache is large and we're within 10% and 10 MiB of the limit, but we have time now (not in the middle of a block processing).
     bool fCacheLarge = mode == FLUSH_STATE_PERIODIC && cacheSize > std::max((9 * nTotalSpace) / 10, nTotalSpace - MAX_BLOCK_COINSDB_USAGE * 1024 * 1024);
@@ -2885,7 +2885,7 @@ bool static DisconnectTip(CValidationState& state, const CChainParams& chainpara
     int64_t nStart = GetTimeMicros();
     {
         auto dbTx = evoDb->BeginTransaction();
-        
+
         CCoinsViewCache view(pcoinsTip);
         if (DisconnectBlock(block, state, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
@@ -3460,20 +3460,6 @@ bool ActivateBestChain(CValidationState &state, const CChainParams& chainparams,
         return false;
     }
 
-    //clear all old sigma spend transaction from mempool, to stat padding
-    if (chainActive.Height() == ::Params().GetConsensus().nSigmaPaddingBlock) {
-        LOCK2(cs_main, mempool.cs);
-        for (CTxMemPool::indexed_transaction_set::iterator mi = mempool.mapTx.begin();
-             mi != mempool.mapTx.end(); ++mi)
-        {
-            auto tx = mi->GetTx();
-            if(tx.IsSigmaSpend()) {
-                std::list<CTransaction> removed;
-                mempool.removeRecursive(tx, MemPoolRemovalReason::CONFLICT);
-            }
-        }
-    }
-
     return true;
 }
 
@@ -3619,7 +3605,7 @@ CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
     // track prevBlockHash -> pindex (multimap)
     if (pindexNew->pprev) {
         mapPrevBlockIndex.emplace(pindexNew->pprev->GetBlockHash(), pindexNew);
-    }    
+    }
 
     return pindexNew;
 }
@@ -3769,7 +3755,7 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const 
     if (nHeight == 0 && !block.hashPrevBlock.IsNull())
         nHeight = INT_MAX;
     if (fCheckPOW && !CheckProofOfWork(block.GetPoWHash(nHeight), block.nBits, consensusParams))
-        return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");        
+        return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
     return true;
 }
 
@@ -3779,7 +3765,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         block.zerocoinTxInfo = std::make_shared<CZerocoinTxInfo>();
     if (!block.sigmaTxInfo)
         block.sigmaTxInfo = std::make_shared<sigma::CSigmaTxInfo>();
-        
+
     LogPrintf("CheckBlock() nHeight=%s, blockHash= %s, isVerifyDB = %s\n", nHeight, block.GetHash().ToString(), isVerifyDB);
 
     // These are checks that are independent of context.
@@ -4547,7 +4533,7 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams)
         // build mapPrevBlockIndex
         if (pindex->pprev) {
             mapPrevBlockIndex.emplace(pindex->pprev->GetBlockHash(), pindex);
-        }        
+        }
     }
     sort(vSortedByHeight.begin(), vSortedByHeight.end());
     BOOST_FOREACH(const PAIRTYPE(int, CBlockIndex*)& item, vSortedByHeight)
