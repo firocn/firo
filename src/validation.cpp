@@ -2096,6 +2096,8 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         const CTransaction &tx = *(block.vtx[i]);
         uint256 hash = tx.GetHash();
 
+        dbIndexHelper.DisconnectTransactionOutputs(tx, pindex->nHeight, i, view);
+
         // Check that all outputs are available and match the outputs in the block itself
         // exactly.
         for (size_t o = 0; o < tx.vout.size(); o++) {
@@ -2128,7 +2130,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         if(tx.IsSigmaSpend())
             nFees += sigma::GetSigmaSpendInput(tx) - tx.GetValueOut();
 
-        dbIndexHelper.DisconnectTransactionOutputs(tx, pindex->nHeight, i, view);
         dbIndexHelper.DisconnectTransactionInputs(tx, pindex->nHeight, i, view);
     }
 
