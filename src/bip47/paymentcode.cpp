@@ -55,7 +55,7 @@ CBIP47ChannelAddress CPaymentCode::notificationAddress()
     return addressAt (0);
 }
 
-CBIP47ChannelAddress CPaymentCode::addressAt ( int idx )
+CBIP47ChannelAddress CPaymentCode::addressAt ( int idx ) const
 {
     CExtPubKey key;
     if ( !createMasterPubKeyFromPaymentCode ( strPaymentCode,key ) ) {
@@ -66,7 +66,7 @@ CBIP47ChannelAddress CPaymentCode::addressAt ( int idx )
     return CBIP47ChannelAddress ( key, idx );
 }
 
-std::vector<unsigned char> CPaymentCode::getPayload()
+std::vector<unsigned char> CPaymentCode::getPayload() const
 {
     std::vector<unsigned char> pcBytes;
     if ( !DecodeBase58Check ( strPaymentCode,pcBytes ) ) {
@@ -119,7 +119,7 @@ std::vector<unsigned char>& CPaymentCode::getChainCode()
     return chaincode;
 }
 
-std::string CPaymentCode::toString()
+std::string const & CPaymentCode::toString() const
 {
     return strPaymentCode;
 }

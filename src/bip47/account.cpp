@@ -27,7 +27,7 @@ bool CBIP47Account::SetPaymentCodeString(std::string strPaymentCode)
     return true;
 }
 
-bool CBIP47Account::isValid()
+bool CBIP47Account::isValid() const
 {
 
     CBIP47Account testAccount(paymentCode.toString());
@@ -81,12 +81,12 @@ bool CBIP47Account::isValid()
     return true;
 }
 
-std::string CBIP47Account::getStringPaymentCode() 
+std::string const & CBIP47Account::getStringPaymentCode() const
 {
     return paymentCode.toString();
 }
 
-CBitcoinAddress CBIP47Account::getNotificationAddress() {
+CBitcoinAddress CBIP47Account::getNotificationAddress() const {
     CExtPubKey key0;
     key.Derive(key0 ,0);
     CBitcoinAddress address(key0.pubkey.GetID());
@@ -117,7 +117,7 @@ CExtKey CBIP47Account::getNotificationPrivKey() {
     
 }
 
-CPaymentCode CBIP47Account::getPaymentCode() {
+CPaymentCode const & CBIP47Account::getPaymentCode() const {
     return paymentCode;
 }
 
@@ -125,21 +125,20 @@ CBIP47ChannelAddress CBIP47Account::addressAt(int idx) {
     return CBIP47ChannelAddress(key, idx);
 }
 
-CExtPubKey CBIP47Account::keyAt(int idx) {
+CExtPubKey CBIP47Account::keyAt(int idx) const
+{
     CExtPubKey result;
-    if(!key.Derive(result,idx))
-    {
-        LogPrintf("keyAt error in CBIP47Account\n");
+    if(!key.Derive(result,idx)) {
+        throw std::logic_error("keyAt error in CBIP47Account");
     }
     return result;
 }
 
-CExtKey CBIP47Account::keyPrivAt(int idx)
+CExtKey CBIP47Account::keyPrivAt(int idx) const
 {
     CExtKey result;
-    if(!prvkey.Derive(result, idx))
-    {
-        LogPrintf("keyPrivAt error in CBIP47Account\n");
+    if(!prvkey.Derive(result, idx)) {
+        throw std::logic_error("keyAt error in CBIP47Account");
     }
     
     return result;

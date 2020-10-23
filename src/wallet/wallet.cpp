@@ -2119,8 +2119,11 @@ bool CWallet::savePaymentCode(CPaymentCode from_pcode)
     return true;
 }
 
-CBIP47Account CWallet::getBIP47Account(int i)
+CBIP47Account const & CWallet::getBIP47Account(int i) const
 {
+    if(m_CBIP47Accounts.size() <= i) {
+        throw std::out_of_range("There is no BIP47 account with number " + std::to_string(i));
+    }
     return m_CBIP47Accounts[i];
 }
 

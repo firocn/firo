@@ -1332,7 +1332,7 @@ public:
     bool savePaymentCode(CPaymentCode from_pcode);
 
 
-    CBIP47Account getBIP47Account(int i);
+    CBIP47Account const & getBIP47Account(int i) const;
     
     std::string getNotificationAddress();
 

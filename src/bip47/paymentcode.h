@@ -18,8 +18,8 @@ class CPaymentCode {
         
         CBIP47ChannelAddress notificationAddress();
 
-        CBIP47ChannelAddress addressAt(int idx);
-        std::vector<unsigned char> getPayload();
+        CBIP47ChannelAddress addressAt(int idx) const;
+        std::vector<unsigned char> getPayload() const;
 
         int getVersion();
 
@@ -28,7 +28,7 @@ class CPaymentCode {
         std::vector<unsigned char>& getPubKey();
         std::vector<unsigned char>& getChainCode();
 
-        string toString();
+        std::string const & toString() const;
 
         static std::vector<unsigned char> getMask(std::vector<unsigned char> sPoint, std::vector<unsigned char> oPoint);
         static std::vector<unsigned char> blind(std::vector<unsigned char> payload, std::vector<unsigned char> mask);
