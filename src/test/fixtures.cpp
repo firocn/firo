@@ -40,6 +40,7 @@
 
 #include "zerocoin.h"
 #include "sigma.h"
+#include "lelantus.h"
 
 
 ZerocoinTestingSetupBase::ZerocoinTestingSetupBase():
@@ -310,4 +311,8 @@ std::vector<CHDMint> LelantusTestingSetup::GenerateMints(
 CPubKey LelantusTestingSetup::GenerateAddress() {
     LOCK(pwalletMain->cs_wallet);
     return pwalletMain->GenerateNewKey();
+}
+
+LelantusTestingSetup::~LelantusTestingSetup() {
+    lelantus::CLelantusState::GetState()->Reset();
 }
