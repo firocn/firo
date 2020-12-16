@@ -329,8 +329,11 @@ Advanced: If you don't wish to generate a wallet with a seed phrase backup (not 
     </message>
 </context>
 <context>
-    <name>FiroGUI</name>
     <name>BitcoinGUI</name>
+    <message>
+        <source>Firo Core</source>
+        <translation>飞熔核心</translation>
+    </message>
     <message>
         <source>Sign &amp;message...</source>
         <translation>消息签名(&amp;M)...</translation>
@@ -342,6 +345,14 @@ Advanced: If you don't wish to generate a wallet with a seed phrase backup (not 
     <message>
         <source>&amp;Overview</source>
         <translation>概况(&amp;O)</translation>
+    </message>
+    <message>
+        <source>&amp;Masternodes</source>
+        <translation>主节点(&amp;M)</translation>
+    </message>
+    <message>
+        <source>Syncing Headers (%1%)...</source>
+        <translation>正在同步头部(%1%)中...</translation>
     </message>
     <message>
         <source>Node</source>
@@ -1600,6 +1611,10 @@ Advanced: If you don't wish to generate a wallet with a seed phrase backup (not 
     <message>
         <source>Current total balance in watch-only addresses</source>
         <translation>观察地址(watch-only address)中的当前总余额 </translation>
+    </message>
+    <message>
+        <source>Anonymous communication with tor</source>
+        <translation>使用 tor 来匿名通信</translation>
     </message>
 </context>
 <context>
@@ -3400,7 +3415,7 @@ Advanced: If you don't wish to generate a wallet with a seed phrase backup (not 
     </message>
     <message>
         <source>Firo Core</source>
-        <translation>Firo Core</translation>
+        <translation>飞熔核心</translation>
     </message>
     <message>
         <source>The %s developers</source>
